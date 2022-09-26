@@ -307,17 +307,28 @@ equilibrium_init_create <- function(age_vector, het_brackets,
   admin_matches <- admin_match(admin_unit = admin_unit, country = country,
                           admin_units_seasonal = admin_units_seasonal)
 
-  if(admin_matches == 0){
-    ssa0 <- ssa1 <- ssa2 <- ssa3 <- ssb1 <- ssb2 <- ssb3 <- theta_c <- 0
+  if (!is.null(mpl$ssa0)) {
+    ssa0 <- mpl$ssa0
+    ssa1 <- mpl$ssa1
+    ssa2 <- mpl$ssa2
+    ssa3 <- mpl$ssa3
+    ssb1 <- mpl$ssb1
+    ssb2 <- mpl$ssb2
+    ssb3 <- mpl$ssb3
+    theta_c <- calculate_theta_c(c(ssa0,ssa1,ssa2,ssa3,ssb1,ssb2,ssb3))
   } else {
-    ssa0 <- admin_units_seasonal$a0[admin_matches]
-    ssa1 <- admin_units_seasonal$a1[admin_matches]
-    ssa2 <- admin_units_seasonal$a2[admin_matches]
-    ssa3 <- admin_units_seasonal$a3[admin_matches]
-    ssb1 <- admin_units_seasonal$b1[admin_matches]
-    ssb2 <- admin_units_seasonal$b2[admin_matches]
-    ssb3 <- admin_units_seasonal$b3[admin_matches]
-    theta_c <- admin_units_seasonal$theta_c[admin_matches]
+    if(admin_matches == 0){
+      ssa0 <- ssa1 <- ssa2 <- ssa3 <- ssb1 <- ssb2 <- ssb3 <- theta_c <- 0
+    } else {
+      ssa0 <- admin_units_seasonal$a0[admin_matches]
+      ssa1 <- admin_units_seasonal$a1[admin_matches]
+      ssa2 <- admin_units_seasonal$a2[admin_matches]
+      ssa3 <- admin_units_seasonal$a3[admin_matches]
+      ssb1 <- admin_units_seasonal$b1[admin_matches]
+      ssb2 <- admin_units_seasonal$b2[admin_matches]
+      ssb3 <- admin_units_seasonal$b3[admin_matches]
+      theta_c <- admin_units_seasonal$theta_c[admin_matches]
+    }
   }
 
   # better het bounds for equilbirum initialisation in individual model
@@ -357,5 +368,24 @@ equilibrium_init_create <- function(age_vector, het_brackets,
 }
 
 
+fourier <- function(x, ss) {
+  two_pi <- 2 * pi
+  sum(
+    ss[1],
+    ss[2] * cos(two_pi*x/365),
+    ss[3]*cos(2*two_pi*x/365),
+    ss[4]*cos(3*two_pi*x/365),
+    ss[5]*sin(two_pi*x/365),
+    ss[6]*sin(2*two_pi*x/365),
+    ss[7]*sin(3*two_pi*x/365)
+  )
+}
 
+calculate_theta_c <- function(ss){
+  # define vector of times spanning one year
+  tvec = 1:365
 
+  # calculate Fourier series curve
+  seasonality <- sapply(tvec, fourier, ss=ss)
+  sum(seasonality)/365
+}

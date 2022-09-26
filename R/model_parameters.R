@@ -178,7 +178,7 @@ model_param_list_create <- function(
   extra_param_list <- list(...)
   if(length(extra_param_list)>0){
     if(is.list(extra_param_list[[1]])){
-  extra_param_list <- extra_param_list[[1]]
+      extra_param_list <- extra_param_list[[1]]
     }
   }
 

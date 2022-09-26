@@ -68,3 +68,61 @@ run_model <- function(model = "odin_model",
   return(out)
 }
 
+#' @export
+run_model_until_stable <- function(
+  model = "odin_model",
+  het_brackets = 5,
+  age = c(0,0.25,0.5,0.75,1,1.25,1.5,1.75,2,3.5,5,7.5,10,15,20,30,40,50,60,70,80),
+  init_EIR = 10,
+  init_ft = 0.4,
+  tolerance = 1e2,
+  ...
+  ){
+
+  tt <- seq(365)
+
+  ## create model param list using necessary variables
+  mpl <- model_param_list_create(...)
+
+  # generate initial state variables from equilibrium solution
+  state <- equilibrium_init_create(
+    age_vector=age,
+    EIR=init_EIR,ft=init_ft,
+    model_param_list = mpl,
+    het_brackets=het_brackets
+  )
+
+  # create odin generator
+  generator <- odin_model
+
+  # There are many parameters used that should not be passed through
+  # to the model.
+  state_use <- state[names(state) %in% coef(generator)$name]
+
+  # create model with initial values
+  mod <- generator(user = state_use, use_dde = TRUE)
+
+  # run model
+  mod_run <- mod$run(tt, step_size_max=9, restartable = TRUE)
+  # shape output
+  out <- mod$transform_variables(mod_run)
+
+  # Iterate until stable
+  while (TRUE) {
+    # run model
+    tt <- c(tt[[length(tt)]], tt + 365)
+    mod_run <- dde::dopri_continue(
+      mod_run,
+      tt,
+      restartable = TRUE,
+      copy = TRUE
+    )
+
+    # shape output
+    new_out <- mod$transform_variables(mod_run)
+    out <- rbind(out, new_out)
+    if (all((new_out$EIR - tail(out$EIR, 365)) < tolerance)) {
+      return(out)
+    }
+  }
+}
