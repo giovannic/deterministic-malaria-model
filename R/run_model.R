@@ -70,12 +70,11 @@ run_model <- function(model = "odin_model",
 
 #' @export
 run_model_until_stable <- function(
-  model = "odin_model",
   het_brackets = 5,
   age = c(0,0.25,0.5,0.75,1,1.25,1.5,1.75,2,3.5,5,7.5,10,15,20,30,40,50,60,70,80),
   init_EIR = 10,
   init_ft = 0.4,
-  tolerance = 1e2,
+  tolerance = 1e-4,
   ...
   ){
 
@@ -100,29 +99,33 @@ run_model_until_stable <- function(
   state_use <- state[names(state) %in% coef(generator)$name]
 
   # create model with initial values
-  mod <- generator(user = state_use, use_dde = TRUE)
+  mod <- generator$new(user = state_use, use_dde = TRUE)
 
   # run model
   mod_run <- mod$run(tt, step_size_max=9, restartable = TRUE)
+  restart_data <- attr(mod_run, 'restart_data', exact=TRUE)
+
   # shape output
-  out <- mod$transform_variables(mod_run)
+  out <- data.frame(mod$transform_variables(mod_run))
 
   # Iterate until stable
   while (TRUE) {
     # run model
-    tt <- c(tt[[length(tt)]], tt + 365)
+    tt <- tt + 365
     mod_run <- dde::dopri_continue(
       mod_run,
-      tt,
+      c(tt[[1]] - 1, tt),
       restartable = TRUE,
       copy = TRUE
     )
+    attr(mod_run, 'restart_data') <- restart_data
 
-    # shape output
-    new_out <- mod$transform_variables(mod_run)
-    out <- rbind(out, new_out)
-    if (all((new_out$EIR - tail(out$EIR, 365)) < tolerance)) {
+    new_out <- data.frame(mod$transform_variables(mod_run))
+    new_out <- new_out[new_out$t %in% tt,]
+    diffs <- new_out$EIR_out - tail(out$EIR_out, 365)
+    if (all(diffs < tolerance)) {
       return(out)
     }
+    out <- rbind(out, new_out)
   }
 }

@@ -315,6 +315,7 @@ equilibrium_init_create <- function(age_vector, het_brackets,
     ssb1 <- mpl$ssb1
     ssb2 <- mpl$ssb2
     ssb3 <- mpl$ssb3
+    mpl <- mpl[!(names(mpl) %in% c('ssa0','ssa1','ssa2','ssa3','ssb1','ssb2','ssb3'))]
     theta_c <- calculate_theta_c(c(ssa0,ssa1,ssa2,ssa3,ssb1,ssb2,ssb3))
   } else {
     if(admin_matches == 0){
