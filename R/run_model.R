@@ -75,6 +75,7 @@ run_model_until_stable <- function(
   init_EIR = 10,
   init_ft = 0.4,
   tolerance = 1e-4,
+  max_t = 365 * 100,
   ...
   ){
 
@@ -112,6 +113,9 @@ run_model_until_stable <- function(
   while (TRUE) {
     # run model
     tt <- tt + 365
+    if (max_t < tt[[length(tt)]]) {
+      stop(paste0('exiting at t == ', tt[[length(tt)]]))
+    }
     mod_run <- dde::dopri_continue(
       mod_run,
       c(tt[[1]] - 1, tt),
