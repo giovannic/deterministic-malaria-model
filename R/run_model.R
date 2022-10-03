@@ -126,7 +126,7 @@ run_model_until_stable <- function(
 
     new_out <- data.frame(mod$transform_variables(mod_run))
     new_out <- new_out[new_out$t %in% tt,]
-    diffs <- new_out$EIR_out - tail(out$EIR_out, 365)
+    diffs <- abs(new_out$EIR_out - tail(out$EIR_out, 365))
     if (all(diffs < tolerance)) {
       return(out)
     }
